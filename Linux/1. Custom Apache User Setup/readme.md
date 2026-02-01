@@ -99,7 +99,7 @@ This was my first exposure to **SSH host key verification**.
 I learned:
 
 * This happens on **first-time connections**
-* SSH is protecting against man-in-the-middle attacks
+* SSH is protecting against [man-in-the-middle attacks](https://github.com/NavadeepDj/KodeKloud_Journey/blob/main/Linux/1.%20Custom%20Apache%20User%20Setup/man_in_the_middle-attacks.md)
 * Saying `yes` stores the server fingerprint in `~/.ssh/known_hosts`
 
 ### SSH Host Key Verification
