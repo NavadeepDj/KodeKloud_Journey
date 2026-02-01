@@ -102,6 +102,211 @@ I learned:
 * SSH is protecting against man-in-the-middle attacks
 * Saying `yes` stores the server fingerprint in `~/.ssh/known_hosts`
 
+### SSH Host Key Verification
+
+When connecting to `stapp03` for the first time, SSH displayed
+a host authenticity warning.
+
+This occurs because the SSH client has never seen the server’s
+host key before. SSH uses host keys to uniquely identify servers
+and protect against man-in-the-middle attacks.
+
+After confirming the connection, the server’s host key was
+stored in `~/.ssh/known_hosts`. Future connections to the same
+server will not prompt this warning unless the host key changes.
+11️⃣ One-line memory rule (keep this forever)
+
+SSH warnings are about the server’s identity — not your IP, not your user.
+
+This is a **very sharp question**, and the confusion is *totally justified*.
+The short answer feels like it *should* be “yes”… but the correct answer is **no** — and the reason is **really important**.
+
+Let’s clear it up cleanly.
+
+---
+
+## Short, direct answer
+
+👉 **No — SSH does NOT automatically recognize `stapp01/02/03`, even though they are already designed and running.**
+
+And that’s **by design**, for security reasons.
+
+---
+
+## Why this feels confusing (your logic is valid)
+
+Your thinking is:
+
+> “These servers already exist inside the system.
+> So SSH should already know them, right?”
+
+That would make sense **if SSH were centralized**.
+
+But SSH is **not**.
+
+---
+
+## The key concept 🔑 (this unlocks everything)
+
+> **SSH trust is LOCAL, not global.**
+
+Meaning:
+
+* SSH does **not** trust servers just because *they exist*
+* SSH only trusts servers it has **personally met before**
+
+---
+
+## Who is doing the SSH connection here?
+
+This is the critical point:
+
+You are not SSH-ing from your laptop.
+
+You are SSH-ing from:
+
+```
+thor@jumphost
+```
+
+So the SSH client that matters is:
+
+```
+/home/thor/.ssh/
+```
+
+That client had **never connected to `stapp03` before**.
+
+So SSH correctly said:
+
+> “I don’t know this server yet.”
+
+---
+
+## Visualize the trust model 🧠
+
+```
+Your Laptop        (irrelevant)
+     ❌
+
+jumphost (thor) ─── SSH ─── stapp03
+   ↑
+   SSH client lives here
+```
+
+Trust is stored **per client**, not per network.
+
+---
+
+## Why SSH works this way (security reason)
+
+If SSH trusted servers automatically just because:
+
+* They’re in the same network
+* They’re “pre-designed”
+
+Then an attacker inside the network could:
+
+* Spin up a fake server
+* Pretend to be `stapp03`
+* Steal credentials
+
+SSH avoids this by saying:
+
+> “I trust **only what I’ve verified before**.”
+
+---
+
+## What “designed” really means here
+
+When KodeKloud says servers are designed:
+
+* They exist
+* They are reachable
+* They are configured
+
+It does **NOT** mean:
+
+* Every client already trusts them
+* Their host keys are pre-shared
+
+That trust must be built **connection by connection**.
+
+---
+
+## What happened after you typed `yes`?
+
+SSH did this:
+
+1. Saved `stapp03`’s host key into:
+
+   ```bash
+   /home/thor/.ssh/known_hosts
+   ```
+2. From that moment on:
+
+   * `thor@jumphost` trusts `stapp03`
+   * Future connections are silent
+
+---
+
+## What if another user connects?
+
+Example:
+
+```bash
+ssh banner@stapp03
+```
+
+This uses:
+
+```bash
+/home/banner/.ssh/known_hosts
+```
+
+Different file → **trust must be built again**.
+
+---
+
+## Enterprise-grade insight (this is big)
+
+In real companies:
+
+* Every admin
+* Every CI server
+* Every automation agent
+
+Has its **own known_hosts** file.
+
+That’s why:
+
+* Host keys are distributed centrally
+* Or managed via configuration management
+
+---
+
+## How to phrase this correctly in your GitHub doc
+
+```md
+### Why SSH Did Not Recognize Pre-Existing Servers
+
+Although the app servers were already provisioned,
+SSH trust is not automatic.
+
+SSH stores server trust locally on the client machine.
+Since the jump host had never connected to `stapp03`
+before, SSH correctly prompted for host verification.
+
+This behavior is intentional and critical for preventing
+man-in-the-middle attacks.
+```
+
+---
+
+## One-sentence rule (remember this forever)
+
+> **Servers can exist without being trusted — trust is built per SSH client.**
+
 ---
 
 ## 5. Authentication Failure & Big Question
